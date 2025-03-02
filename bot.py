@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder
 
-# 🎬 Page Config (Reduced screen width)
+# 🎬 Page Config
 st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="centered")
 
 # Custom CSS for WhatsApp-style chat layout
@@ -33,30 +33,12 @@ st.markdown("""
             float: left;
             clear: both;
         }
-        /* Movie card styling */
-        .movie-card {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 12px;
-            border-left: 4px solid #ff5722;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        }
-        .movie-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333333;
-        }
-        .movie-info {
-            margin-left: 10px;
-            color: #555555;
-        }
     </style>
 """, unsafe_allow_html=True)
 
-# Title and Greeting
+# Title
 st.title("🤖 Tamil Movie Recommendation Bot")
-st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let's find the perfect Tamil movie for you!")
+st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
 st.write("🎥 **Enter a Genre to Get Recommendations!**")
 
 # Load dataset
@@ -98,7 +80,7 @@ def recommend_movies(primary_genre, min_rating, year):
         return recommendations[['moviename', 'genre', 'predictedrating', 'year']].reset_index(drop=True)
     return pd.DataFrame()
 
-# Initialize session state for chat
+# Initialize session state
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
 if "step" not in st.session_state:
@@ -106,23 +88,24 @@ if "step" not in st.session_state:
     st.session_state["primary_genre"] = None
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
+if "last_input" not in st.session_state:
+    st.session_state["last_input"] = ""
 
-# Display chat history (Styled as WhatsApp chat)
+# Display chat history
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
-    # Removed prefix from here as we'll add it directly in the content
     st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Custom chat input
+# Chat input
 user_input = st.chat_input("💬 Type your message...")
 
-if user_input:
-    # Add user message with emoji prefix (but not in the displayed content)
+if user_input and user_input != st.session_state["last_input"]:  # Ensures no double processing
+    st.session_state["last_input"] = user_input
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
-    # Process chatbot response
+    # Handle conversation steps
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
@@ -146,28 +129,22 @@ if user_input:
             st.session_state["year"] = year
             st.session_state["step"] = 4
 
-            # Get recommendations
-            recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
+            recommendations = recommend_movies(
+                st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"]
+            )
 
             if not recommendations.empty:
                 response = "🤖 🎥 **Here are your recommended movies:**\n"
 
-                # Limit to top 5 recommendations for better display
-                max_recommendations = min(5, len(recommendations))
-                
-                for i in range(max_recommendations):
-                    row = recommendations.iloc[i]
+                for _, row in recommendations.iterrows():
                     response += f"""
                     🎬 **{row['moviename']}**  
                     🎭 **Genre:** {row['genre']}  
                     ⭐ **Rating:** {row['predictedrating']:.1f}  
                     📅 **Year:** {row['year']}  
-                    \n---
+                    \n---\n
                     """
-                
-                if len(recommendations) > max_recommendations:
-                    response += f"*...and {len(recommendations) - max_recommendations} more movies*\n\n"
-                
+
                 response += "✨ Type **'restart'** to search again!"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
@@ -178,20 +155,9 @@ if user_input:
     elif user_input.lower() == "restart":
         st.session_state["step"] = 1
         response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
-    else:
-        # Handle any other input when in recommendation state
-        if st.session_state["step"] == 4:
-            response = "🤖 Type 'restart' to search for different movies!"
-        else:
-            response = "🤖 I'm not sure how to respond to that. Let's continue with the current step."
 
-    # Add bot response to messages - note the emoji is already in the response
+    # Append bot response
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Re-render the chat with updated messages
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for message in st.session_state["messages"]:
-        role_class = "user-message" if message["role"] == "user" else "bot-message"
-        # No prefix added here - the content already has the emoji
-        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Rerun app to show updated chat
+    st.rerun()
