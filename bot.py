@@ -108,6 +108,9 @@ if user_input:
     # Append user message with ✨ emoji
     st.session_state["messages"].append({"role": "user", "content": f"✨ {user_input}"})
 
+    # Default response to avoid undefined variable error
+    response = "🤖 I'm not sure what you mean. Please try again!"
+
     # Process chatbot response
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
@@ -130,10 +133,11 @@ if user_input:
         try:
             year = int(user_input)
             st.session_state["year"] = year
-            st.session_state["recommendations"] = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
+            st.session_state["recommendations"] = recommend_movies(
+                st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"]
+            )
             st.session_state["movie_index"] = 0
             st.session_state["step"] = 4
-
         except ValueError:
             response = "🤖 ❌ Please enter a valid year."
 
@@ -141,14 +145,14 @@ if user_input:
         if user_input.lower() == "exit":
             st.session_state["step"] = 1
             response = "🤖 👋 Goodbye! Type again to start a new search."
-        else:
-            recommendations = st.session_state["recommendations"]
+        elif user_input.lower() == "more":
             index = st.session_state["movie_index"]
+            recommendations = st.session_state["recommendations"]
 
             if recommendations.empty:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
             else:
-                response = "🤖 🎥 **Here are some movies for you:**\n\n"
+                response = "🤖 🎥 **Here are more movies for you:**\n\n"
 
                 for i in range(index, min(index + 5, len(recommendations))):
                     row = recommendations.iloc[i]
@@ -166,12 +170,5 @@ if user_input:
                 else:
                     response += "✨ Type 'more' to see more movies or 'exit' to stop."
 
-    # Append bot response with 🤖 emoji
+    # Append bot response
     st.session_state["messages"].append({"role": "assistant", "content": response})
-
-    # Display updated messages in chat format
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for message in st.session_state["messages"]:
-        role_class = "user-message" if message["role"] == "user" else "bot-message"
-        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
