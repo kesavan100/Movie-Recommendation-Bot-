@@ -59,16 +59,16 @@ if "last_input" not in st.session_state:
 
 # Display chat history
 for message in st.session_state["messages"]:
-    role_class = "user-message" if message["role"] == "user" else "bot-message"
-    st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown(message["content"], unsafe_allow_html=True)
 
 # Chat input
 user_input = st.chat_input("💬 Type your message...")
 
-if user_input and user_input != st.session_state["last_input"]:  # Process input only if it's new
+if user_input and user_input != st.session_state["last_input"]:  # Ensure input is processed once
     st.session_state["last_input"] = user_input
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
+    # Handle conversation steps
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
@@ -98,10 +98,11 @@ if user_input and user_input != st.session_state["last_input"]:  # Process input
 
             if not recommendations.empty:
                 response = "🤖 🎥 **Here are your recommended movies:**\n\n"
-                response += f"{'🎬 Movie Name':<30}{'🎭 Genre':<20}{'⭐ Rating':<10}{'📅 Year':<10}\n"
-                response += "-" * 75 + "\n"
+                response += f"🎬 **Movie Name**{' ' * 10}🎭 **Genre**{' ' * 10}⭐ **Rating**{' ' * 6}📅 **Year**\n"
+                response += "-" * 60 + "\n"
+
                 for _, row in recommendations.iterrows():
-                    response += f"{row['moviename'][:28]:<30}{row['genre'][:18]:<20}{row['predictedrating']:.1f}{' ' * 6}{row['year']:<10}\n"
+                    response += f"{row['moviename'][:18]:<22}{row['genre'][:18]:<22}{row['predictedrating']:.1f}{' ' * 10}{row['year']}\n"
 
                 response += "\n✨ Type **'restart'** to search again!"
             else:
@@ -117,7 +118,5 @@ if user_input and user_input != st.session_state["last_input"]:  # Process input
     # Append bot response
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Display updated chat
-    for message in st.session_state["messages"]:
-        role_class = "user-message" if message["role"] == "user" else "bot-message"
-        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+    # Rerun the app to display updated chat
+    st.rerun()
