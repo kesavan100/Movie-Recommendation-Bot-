@@ -93,71 +93,74 @@ if "step" not in st.session_state:
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
-    prefix = "👤" if message["role"] == "user" else "🤖 "
-    st.markdown(f'<div class="chat-message {role_class}">{prefix}{message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Custom chat input
 user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
-    # Append user message with 👤 emoji
-    st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
+    # Prevent double input processing
+    if "last_input" not in st.session_state or st.session_state["last_input"] != user_input:
+        st.session_state["last_input"] = user_input  # Store last input
 
-    # Process chatbot response
-    if st.session_state["step"] == 1:
-        st.session_state["primary_genre"] = user_input.lower()
-        st.session_state["step"] = 2
-        response = "🤖 🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
-    
-    elif st.session_state["step"] == 2:
-        try:
-            rating = float(user_input)
-            if 0 <= rating <= 10:
-                st.session_state["min_rating"] = rating
-                st.session_state["step"] = 3
-                response = "🤖 📅 From which year should I suggest movies? 🎬"
-            else:
-                response = "🤖 ❌ Please enter a rating between 0 and 10."
-        except ValueError:
-            response = "🤖 ❌ Please enter a valid number."
-    
-    elif st.session_state["step"] == 3:
-        try:
-            year = int(user_input)
-            st.session_state["year"] = year
-            st.session_state["step"] = 4
+        # Append user message with 👤 emoji
+        st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
-            # Get recommendations
-            recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
+        # Process chatbot response
+        if st.session_state["step"] == 1:
+            st.session_state["primary_genre"] = user_input.lower()
+            st.session_state["step"] = 2
+            response = "🤖 🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
+        
+        elif st.session_state["step"] == 2:
+            try:
+                rating = float(user_input)
+                if 0 <= rating <= 10:
+                    st.session_state["min_rating"] = rating
+                    st.session_state["step"] = 3
+                    response = "🤖 📅 From which year should I suggest movies? 🎬"
+                else:
+                    response = "🤖 ❌ Please enter a rating between 0 and 10."
+            except ValueError:
+                response = "🤖 ❌ Please enter a valid number."
+        
+        elif st.session_state["step"] == 3:
+            try:
+                year = int(user_input)
+                st.session_state["year"] = year
+                st.session_state["step"] = 4
 
-            if not recommendations.empty:
-                response = "🤖 🎥 **Here are your recommended movies:**\n\n"
-                
-                # Properly formatted columns
-                response += f"{'🎬 Movie Name':<30}{'🎭 Genre':<20}{'⭐ Rating':<10}{'📅 Year':<10}\n"
-                response += "-" * 75 + "\n"
+                # Get recommendations
+                recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
-                for _, row in recommendations.iterrows():
-                    response += f"{row['moviename'][:28]:<30}{row['genre'][:18]:<20}{row['predictedrating']:.1f}{' ' * 6}{row['year']:<10}\n"
+                if not recommendations.empty:
+                    response = "🤖 🎥 **Here are your recommended movies:**\n\n"
+                    
+                    # Properly formatted columns
+                    response += f"{'🎬 Movie Name':<30}{'🎭 Genre':<20}{'⭐ Rating':<10}{'📅 Year':<10}\n"
+                    response += "-" * 75 + "\n"
 
-                response += "\n✨ Type **'restart'** to search again!"
-            else:
-                response = "🤖 ❌ No movies found! Type 'restart' to try again."
+                    for _, row in recommendations.iterrows():
+                        response += f"{row['moviename'][:28]:<30}{row['genre'][:18]:<20}{row['predictedrating']:.1f}{' ' * 6}{row['year']:<10}\n"
 
-        except ValueError:
-            response = "🤖 ❌ Please enter a valid year."
+                    response += "\n✨ Type **'restart'** to search again!"
+                else:
+                    response = "🤖 ❌ No movies found! Type 'restart' to try again."
 
-    elif user_input.lower() == "restart":
-        st.session_state["step"] = 1
-        response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
+            except ValueError:
+                response = "🤖 ❌ Please enter a valid year."
 
-    # Append bot response with 🤖 emoji
-    st.session_state["messages"].append({"role": "assistant", "content": response})
+        elif user_input.lower() == "restart":
+            st.session_state["step"] = 1
+            response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
 
-    # Display updated messages in chat format
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for message in st.session_state["messages"]:
-        role_class = "user-message" if message["role"] == "user" else "bot-message"
-        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        # Append bot response
+        st.session_state["messages"].append({"role": "assistant", "content": response})
+
+        # Refresh chat history
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        for message in st.session_state["messages"]:
+            role_class = "user-message" if message["role"] == "user" else "bot-message"
+            st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
