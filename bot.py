@@ -132,16 +132,15 @@ if user_input:
             recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
             if not recommendations.empty:
-                response = "🤖 🎥 **Here are your recommended movies:**\n"
+                response = "🤖 🎥 **Here are your recommended movies:**\n\n"
 
                 for _, row in recommendations.iterrows():
-                    response += f"""
-                    🎬 **{row['moviename']}**  
-                    🎭 **Genre:** {row['genre']}  
-                    ⭐ **Rating:** {row['predictedrating']:.1f}  
-                    📅 **Year:** {row['year']}  
-                    \n---
-                    """
+                    response += (
+                        f"🎬 **{row['moviename']}**\n"
+                        f"🎭 Genre: {row['genre']}\n"
+                        f"⭐ Rating: {row['predictedrating']:.1f}\n"
+                        f"📅 Year: {row['year']}\n\n"
+                    )
 
                 response += "✨ Type **'restart'** to search again!"
             else:
