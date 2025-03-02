@@ -101,7 +101,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # Chat input
 user_input = st.chat_input("💬 Type your message...")
 
-if user_input and user_input != st.session_state["last_input"]:  # Ensures no double processing
+if user_input and user_input != st.session_state["last_input"]:  # Prevent double response
     st.session_state["last_input"] = user_input
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
@@ -134,18 +134,14 @@ if user_input and user_input != st.session_state["last_input"]:  # Ensures no do
             )
 
             if not recommendations.empty:
-                response = "🤖 🎥 **Here are your recommended movies:**\n"
+                response = "🤖 🎥 **Here are your recommended movies:**\n\n"
+                response += "| 🎬 **Movie Name** | 🎭 **Genre** | ⭐ **Rating** | 📅 **Year** |\n"
+                response += "|------------------|-------------|-------------|-----------|\n"
 
                 for _, row in recommendations.iterrows():
-                    response += f"""
-                    🎬 **{row['moviename']}**  
-                    🎭 **Genre:** {row['genre']}  
-                    ⭐ **Rating:** {row['predictedrating']:.1f}  
-                    📅 **Year:** {row['year']}  
-                    \n---\n
-                    """
+                    response += f"| **{row['moviename']}** | {row['genre']} | {row['predictedrating']:.1f} | {row['year']} |\n"
 
-                response += "✨ Type **'restart'** to search again!"
+                response += "\n✨ Type **'restart'** to search again!"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
 
