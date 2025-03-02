@@ -76,9 +76,7 @@ def recommend_movies(primary_genre, min_rating, year):
         (movies_df['year'] >= year)
     ].sort_values(by='predictedrating', ascending=False)
 
-    if not recommendations.empty:
-        return recommendations[['moviename', 'genre', 'predictedrating', 'year']].reset_index(drop=True)
-    return pd.DataFrame()
+    return recommendations[['moviename', 'genre', 'predictedrating', 'year']].reset_index(drop=True)
 
 # Initialize session state for chat
 if "messages" not in st.session_state:
@@ -88,28 +86,28 @@ if "step" not in st.session_state:
     st.session_state["primary_genre"] = None
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
+    st.session_state["recommendations"] = None
+    st.session_state["current_index"] = 0
 
 # Display chat history (Styled as WhatsApp chat)
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
-    prefix = "👤" if message["role"] == "user" else "🤖 "
-    st.markdown(f'<div class="chat-message {role_class}">{prefix}{message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Custom chat input
 user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
-    # Append user message with 👤 emoji
+    # Append user message
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
-    # Process chatbot response
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
         response = "🤖 🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
-    
+
     elif st.session_state["step"] == 2:
         try:
             rating = float(user_input)
@@ -121,7 +119,7 @@ if user_input:
                 response = "🤖 ❌ Please enter a rating between 0 and 10."
         except ValueError:
             response = "🤖 ❌ Please enter a valid number."
-    
+
     elif st.session_state["step"] == 3:
         try:
             year = int(user_input)
@@ -129,37 +127,56 @@ if user_input:
             st.session_state["step"] = 4
 
             # Get recommendations
-            recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
+            st.session_state["recommendations"] = recommend_movies(
+                st.session_state["primary_genre"],
+                st.session_state["min_rating"],
+                st.session_state["year"]
+            )
+            st.session_state["current_index"] = 0  # Start from the first movie
 
-            if not recommendations.empty:
-                response = "🤖 🎥 **Here are your recommended movies:**\n"
-
-                for _, row in recommendations.iterrows():
-                    response += f"""
-                    🎬 **{row['moviename']}**  
-                    🎭 **Genre:** {row['genre']}  
-                    ⭐ **Rating:** {row['predictedrating']:.1f}  
-                    📅 **Year:** {row['year']}  
-                    \n---
-                    """
-
-                response += "✨ Type **'restart'** to search again!"
+            if not st.session_state["recommendations"].empty:
+                response = "🤖 🎥 **Here are your first 5 recommended movies:**\n"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
-
+            
         except ValueError:
             response = "🤖 ❌ Please enter a valid year."
 
-    elif user_input.lower() == "restart":
-        st.session_state["step"] = 1
-        response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
+    elif st.session_state["step"] == 4:
+        if user_input.lower() == "more":
+            start = st.session_state["current_index"]
+            end = start + 5
+            movie_list = st.session_state["recommendations"].iloc[start:end]
 
-    # Append bot response with 🤖 emoji
+            if movie_list.empty:
+                response = "🤖 ⚠️ No more movies to recommend! Type 'restart' to try again."
+            else:
+                response = "🤖 🎥 **Here are the next movies:**\n"
+                st.session_state["current_index"] += 5  # Move index for next batch
+
+        elif user_input.lower() == "exit":
+            response = "🤖 👋 Alright! Have a great time watching movies! 🎬"
+            st.session_state["step"] = 1  # Reset the bot
+
+        elif user_input.lower() == "restart":
+            st.session_state["step"] = 1
+            response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
+
+        else:
+            response = "🤖 ❌ Type 'more' to see more movies or 'exit' to stop."
+
+    # Append bot response
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Display updated messages in chat format
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for message in st.session_state["messages"]:
-        role_class = "user-message" if message["role"] == "user" else "bot-message"
-        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Display movie recommendations in a clean text format
+    if st.session_state["step"] == 4 and "recommendations" in st.session_state:
+        start = st.session_state["current_index"]
+        end = start + 5
+        movie_list = st.session_state["recommendations"].iloc[start:end]
+
+        if not movie_list.empty:
+            movie_text = "\n".join(
+                [f"🎬 **{row['moviename']}**  \n🎭 **Genre:** {row['genre']}  \n⭐ **Rating:** {row['predictedrating']:.1f}  \n📅 **Year:** {row['year']}  \n" 
+                 for _, row in movie_list.iterrows()]
+            )
+            st.session_state["messages"].append({"role": "assistant", "content": movie_text})
