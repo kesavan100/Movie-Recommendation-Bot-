@@ -38,7 +38,7 @@ st.markdown("""
 
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
-st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let's find the perfect Tamil movie for you!")
+st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
 st.write("🎥 **Enter a Genre to Get Recommendations!**")
 
 # Load dataset
@@ -132,18 +132,15 @@ if user_input:
             recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
             if not recommendations.empty:
-                response = "🤖 🎥 **Here are your recommended movies:**\n"
+                response = "🤖 🎥 **Here are your recommended movies:**\n\n"
+
+                response += "🎬 **Movie Name**              🎭 **Genre**             ⭐ **Rating**     📅 **Year**\n"
+                response += "-" * 80 + "\n"
 
                 for _, row in recommendations.iterrows():
-                    response += f"""
-                    🎬 **{row['moviename']}**  
-                    🎭 **Genre:** {row['genre']}  
-                    ⭐ **Rating:** {row['predictedrating']:.1f}  
-                    📅 **Year:** {row['year']}  
-                    \n---
-                    """
+                    response += f"{row['moviename'][:25]:<25} {row['genre'][:15]:<20} {row['predictedrating']:.1f}         {row['year']}\n"
 
-                response += "✨ Type **'restart'** to search again!"
+                response += "\n✨ Type **'restart'** to search again!"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
 
