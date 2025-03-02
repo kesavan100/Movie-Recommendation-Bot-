@@ -133,12 +133,13 @@ if user_input:
 
             if not recommendations.empty:
                 response = "🤖 🎥 **Here are your recommended movies:**\n\n"
-
-                response += "🎬 **Movie Name**              🎭 **Genre**             ⭐ **Rating**     📅 **Year**\n"
-                response += "-" * 80 + "\n"
+                
+                # Properly formatted columns
+                response += f"{'🎬 Movie Name':<30}{'🎭 Genre':<20}{'⭐ Rating':<10}{'📅 Year':<10}\n"
+                response += "-" * 75 + "\n"
 
                 for _, row in recommendations.iterrows():
-                    response += f"{row['moviename'][:25]:<25} {row['genre'][:15]:<20} {row['predictedrating']:.1f}         {row['year']}\n"
+                    response += f"{row['moviename'][:28]:<30}{row['genre'][:18]:<20}{row['predictedrating']:.1f}{' ' * 6}{row['year']:<10}\n"
 
                 response += "\n✨ Type **'restart'** to search again!"
             else:
