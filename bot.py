@@ -4,8 +4,42 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder
 
-# 🎬 Page Config
+# 🎬 Page Config (Reduced screen width)
 st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="centered")
+
+# Custom CSS for WhatsApp-style chat layout
+st.markdown("""
+    <style>
+        .chat-container {
+            max-width: 600px;
+            margin: auto;
+        }
+        .chat-message {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: inline-block;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #dcf8c6;
+            text-align: right;
+            float: right;
+            clear: both;
+        }
+        .bot-message {
+            background-color: #f1f0f0;
+            text-align: left;
+            float: left;
+            clear: both;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Title and Greeting
+st.title("🤖 Tamil Movie Recommendation Bot")
+st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
+st.write("🎥 **Enter a Genre to Get Recommendations!**")
 
 # Load dataset
 @st.cache_data
@@ -46,7 +80,7 @@ def recommend_movies(primary_genre, min_rating, year):
         return recommendations[['moviename', 'genre', 'predictedrating', 'year']].reset_index(drop=True)
     return pd.DataFrame()
 
-# Initialize session state
+# Initialize session state for chat
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
 if "step" not in st.session_state:
@@ -54,21 +88,23 @@ if "step" not in st.session_state:
     st.session_state["primary_genre"] = None
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
-if "last_input" not in st.session_state:
-    st.session_state["last_input"] = ""
 
-# Display chat history
+# Display chat history (Styled as WhatsApp chat)
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
-    st.markdown(message["content"], unsafe_allow_html=True)
+    role_class = "user-message" if message["role"] == "user" else "bot-message"
+    prefix = "👤" if message["role"] == "user" else "🤖 "
+    st.markdown(f'<div class="chat-message {role_class}">{prefix}{message["content"]}</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# Chat input
+# Custom chat input
 user_input = st.chat_input("💬 Type your message...")
 
-if user_input and user_input != st.session_state["last_input"]:  # Ensure input is processed once
-    st.session_state["last_input"] = user_input
+if user_input:
+    # Append user message with 👤 emoji
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
-    # Handle conversation steps
+    # Process chatbot response
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
@@ -92,19 +128,22 @@ if user_input and user_input != st.session_state["last_input"]:  # Ensure input 
             st.session_state["year"] = year
             st.session_state["step"] = 4
 
-            recommendations = recommend_movies(
-                st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"]
-            )
+            # Get recommendations
+            recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
             if not recommendations.empty:
-                response = "🤖 🎥 **Here are your recommended movies:**\n\n"
-                response += f"🎬 **Movie Name**{' ' * 10}🎭 **Genre**{' ' * 10}⭐ **Rating**{' ' * 6}📅 **Year**\n"
-                response += "-" * 60 + "\n"
+                response = "🤖 🎥 **Here are your recommended movies:**\n"
 
                 for _, row in recommendations.iterrows():
-                    response += f"{row['moviename'][:18]:<22}{row['genre'][:18]:<22}{row['predictedrating']:.1f}{' ' * 10}{row['year']}\n"
+                    response += f"""
+                    🎬 **{row['moviename']}**  
+                    🎭 **Genre:** {row['genre']}  
+                    ⭐ **Rating:** {row['predictedrating']:.1f}  
+                    📅 **Year:** {row['year']}  
+                    \n---
+                    """
 
-                response += "\n✨ Type **'restart'** to search again!"
+                response += "✨ Type **'restart'** to search again!"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
 
@@ -115,8 +154,12 @@ if user_input and user_input != st.session_state["last_input"]:  # Ensure input 
         st.session_state["step"] = 1
         response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
 
-    # Append bot response
+    # Append bot response with 🤖 emoji
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Rerun the app to display updated chat
-    st.rerun()
+    # Display updated messages in chat format
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for message in st.session_state["messages"]:
+        role_class = "user-message" if message["role"] == "user" else "bot-message"
+        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
