@@ -33,12 +33,30 @@ st.markdown("""
             float: left;
             clear: both;
         }
+        /* Movie card styling */
+        .movie-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ff5722;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        .movie-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333333;
+        }
+        .movie-info {
+            margin-left: 10px;
+            color: #555555;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
-st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
+st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let's find the perfect Tamil movie for you!")
 st.write("🎥 **Enter a Genre to Get Recommendations!**")
 
 # Load dataset
@@ -93,15 +111,15 @@ if "step" not in st.session_state:
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
-    prefix = "👤" if message["role"] == "user" else "🤖 "
-    st.markdown(f'<div class="chat-message {role_class}">{prefix}{message["content"]}</div>', unsafe_allow_html=True)
+    # Removed prefix from here as we'll add it directly in the content
+    st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Custom chat input
 user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
-    # Append user message with 👤 emoji
+    # Add user message with emoji prefix (but not in the displayed content)
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
     # Process chatbot response
@@ -134,7 +152,11 @@ if user_input:
             if not recommendations.empty:
                 response = "🤖 🎥 **Here are your recommended movies:**\n"
 
-                for _, row in recommendations.iterrows():
+                # Limit to top 5 recommendations for better display
+                max_recommendations = min(5, len(recommendations))
+                
+                for i in range(max_recommendations):
+                    row = recommendations.iloc[i]
                     response += f"""
                     🎬 **{row['moviename']}**  
                     🎭 **Genre:** {row['genre']}  
@@ -142,7 +164,10 @@ if user_input:
                     📅 **Year:** {row['year']}  
                     \n---
                     """
-
+                
+                if len(recommendations) > max_recommendations:
+                    response += f"*...and {len(recommendations) - max_recommendations} more movies*\n\n"
+                
                 response += "✨ Type **'restart'** to search again!"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
@@ -153,13 +178,20 @@ if user_input:
     elif user_input.lower() == "restart":
         st.session_state["step"] = 1
         response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
+    else:
+        # Handle any other input when in recommendation state
+        if st.session_state["step"] == 4:
+            response = "🤖 Type 'restart' to search for different movies!"
+        else:
+            response = "🤖 I'm not sure how to respond to that. Let's continue with the current step."
 
-    # Append bot response with 🤖 emoji
+    # Add bot response to messages - note the emoji is already in the response
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Display updated messages in chat format
+    # Re-render the chat with updated messages
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     for message in st.session_state["messages"]:
         role_class = "user-message" if message["role"] == "user" else "bot-message"
+        # No prefix added here - the content already has the emoji
         st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
