@@ -4,8 +4,37 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder
 
-# 🎬 Page Config
-st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="wide")
+# 🎬 Page Config (Reduced screen width)
+st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="centered")
+
+# Custom CSS for WhatsApp-style chat layout
+st.markdown("""
+    <style>
+        .chat-container {
+            max-width: 600px;
+            margin: auto;
+        }
+        .chat-message {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: inline-block;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #dcf8c6;
+            text-align: left;
+            float: left;
+            clear: both;
+        }
+        .bot-message {
+            background-color: #f1f0f0;
+            text-align: right;
+            float: right;
+            clear: both;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
@@ -60,10 +89,12 @@ if "step" not in st.session_state:
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
 
-# Display chat history
+# Display chat history (Styled as WhatsApp chat)
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
-    role = "🎤 **You:**" if message["role"] == "user" else "🤖 **Bot:**"
-    st.markdown(f"{role} {message['content']}")
+    role_class = "user-message" if message["role"] == "user" else "bot-message"
+    st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Custom chat input
 user_input = st.chat_input("💬 Type your message...")
@@ -71,7 +102,6 @@ user_input = st.chat_input("💬 Type your message...")
 if user_input:
     # Append user message
     st.session_state["messages"].append({"role": "user", "content": user_input})
-    st.markdown(f"🎤 **You:** {user_input}")
 
     # Process chatbot response
     if st.session_state["step"] == 1:
@@ -125,4 +155,10 @@ if user_input:
 
     # Append bot response
     st.session_state["messages"].append({"role": "assistant", "content": response})
-    st.markdown(f"🤖 **Bot:** {response}")
+
+    # Display updated messages in chat format
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for message in st.session_state["messages"]:
+        role_class = "user-message" if message["role"] == "user" else "bot-message"
+        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
