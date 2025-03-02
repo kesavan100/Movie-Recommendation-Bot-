@@ -7,28 +7,6 @@ from sklearn.preprocessing import OneHotEncoder
 # 🎬 Page Config
 st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="wide")
 
-# Custom Styling
-st.markdown("""
-    <style>
-        /* Chat UI Styling */
-        .chat-container { max-width: 600px; margin: auto; padding: 15px; }
-        .user-message { background-color: #DCF8C6; text-align: right; margin-left: auto; 
-                        padding: 12px 15px; border-radius: 15px; font-weight: bold; 
-                        box-shadow: 0px 2px 5px rgba(0,0,0,0.1); width: fit-content; max-width: 80%; }
-        .bot-message { background-color: #FFFFFF; text-align: left; margin-right: auto; 
-                       padding: 12px 15px; border-radius: 15px; font-weight: bold; 
-                       box-shadow: 0px 2px 5px rgba(0,0,0,0.1); width: fit-content; max-width: 80%; }
-        .message-row { display: flex; align-items: center; margin-bottom: 10px; }
-        .chat-input { border-radius: 25px; padding: 12px; background: #f3f3f3; width: 100%; 
-                      border: 1px solid #ccc; outline: none; font-size: 16px; }
-        /* Recommendation Card Styling */
-        .movie-card { padding: 12px; margin: 10px 0; border-radius: 10px; 
-                      background-color: #f9f9f9; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
-        .movie-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-        .movie-info { margin: 5px 0; font-size: 14px; }
-    </style>
-""", unsafe_allow_html=True)
-
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
 st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
@@ -40,7 +18,7 @@ def load_data():
     return pd.read_csv("Tamil_movies_dataset.csv")
 
 movies_df = load_data()
-movies_df.columns = movies_df.columns.str.lower()  # Ensure column names are case-insensitive
+movies_df.columns = movies_df.columns.str.lower()  # Ensure column names are lowercase
 
 # Preprocess data
 X = movies_df[['genre', 'year']]
@@ -83,25 +61,23 @@ if "step" not in st.session_state:
     st.session_state["year"] = None
 
 # Display chat history
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
-    role_class = "user-message" if message["role"] == "user" else "bot-message"
-    st.markdown(f'<div class="message-row"><div class="{role_class}">{message["content"]}</div></div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+    role = "🎤 **You:**" if message["role"] == "user" else "🤖 **Bot:**"
+    st.markdown(f"{role} {message['content']}")
 
 # Custom chat input
 user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
-    # Append user message (right side)
+    # Append user message
     st.session_state["messages"].append({"role": "user", "content": user_input})
-    st.markdown(f'<div class="message-row"><div class="user-message">{user_input}</div></div>', unsafe_allow_html=True)
+    st.markdown(f"🎤 **You:** {user_input}")
 
     # Process chatbot response
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
-        response = "🎭 Got it! What minimum rating do you prefer? (0-10)"
+        response = "🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
     
     elif st.session_state["step"] == 2:
         try:
@@ -109,7 +85,7 @@ if user_input:
             if 0 <= rating <= 10:
                 st.session_state["min_rating"] = rating
                 st.session_state["step"] = 3
-                response = "📅 From which year should I suggest movies?"
+                response = "📅 From which year should I suggest movies? 🎬"
             else:
                 response = "❌ Please enter a rating between 0 and 10."
         except ValueError:
@@ -128,16 +104,15 @@ if user_input:
                 response = "🎥 **Here are your recommended movies:**\n"
 
                 for _, row in recommendations.iterrows():
-                    st.markdown(f"""
-                    <div class="movie-card">
-                        <p class="movie-title">🎬 {row['moviename']}</p>
-                        <p class="movie-info"><b>Genre:</b> {row['genre']}</p>
-                        <p class="movie-info"><b>Rating:</b> ⭐ {row['predictedrating']:.1f}</p>
-                        <p class="movie-info"><b>Year:</b> {row['year']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    response += f"""
+                    🎬 **{row['moviename']}**  
+                    🎭 **Genre:** {row['genre']}  
+                    ⭐ **Rating:** {row['predictedrating']:.1f}  
+                    📅 **Year:** {row['year']}  
+                    \n---
+                    """
 
-                response += "\n✨ Type 'restart' to search again!"
+                response += "✨ Type **'restart'** to search again!"
             else:
                 response = "❌ No movies found! Type 'restart' to try again."
 
@@ -146,8 +121,8 @@ if user_input:
 
     elif user_input.lower() == "restart":
         st.session_state["step"] = 1
-        response = "🔄 Restarting... 👋 Hi again! What genre of movie are you looking for?"
+        response = "🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
 
-    # Append bot response (left side)
+    # Append bot response
     st.session_state["messages"].append({"role": "assistant", "content": response})
-    st.markdown(f'<div class="message-row"><div class="bot-message">{response}</div></div>', unsafe_allow_html=True)
+    st.markdown(f"🤖 **Bot:** {response}")
