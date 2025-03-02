@@ -23,14 +23,14 @@ st.markdown("""
         }
         .user-message {
             background-color: #dcf8c6;
-            text-align: left;
-            float: left;
+            text-align: right;
+            float: right;
             clear: both;
         }
         .bot-message {
             background-color: #f1f0f0;
-            text-align: right;
-            float: right;
+            text-align: left;
+            float: left;
             clear: both;
         }
     </style>
@@ -39,7 +39,7 @@ st.markdown("""
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
 st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
-st.write("Enter the Genre 🎥 to Recommend!!!")
+st.write("🎥 **Enter a Genre to Get Recommendations!**")
 
 # Load dataset
 @st.cache_data
@@ -93,21 +93,22 @@ if "step" not in st.session_state:
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
-    st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+    prefix = "✨" if message["role"] == "user" else "🤖 "
+    st.markdown(f'<div class="chat-message {role_class}">{prefix}{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Custom chat input
 user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
-    # Append user message
-    st.session_state["messages"].append({"role": "user", "content": user_input})
+    # Append user message with ✨ emoji
+    st.session_state["messages"].append({"role": "user", "content": f"✨ {user_input}"})
 
     # Process chatbot response
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
-        response = "🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
+        response = "🤖 🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
     
     elif st.session_state["step"] == 2:
         try:
@@ -115,11 +116,11 @@ if user_input:
             if 0 <= rating <= 10:
                 st.session_state["min_rating"] = rating
                 st.session_state["step"] = 3
-                response = "📅 From which year should I suggest movies? 🎬"
+                response = "🤖 📅 From which year should I suggest movies? 🎬"
             else:
-                response = "❌ Please enter a rating between 0 and 10."
+                response = "🤖 ❌ Please enter a rating between 0 and 10."
         except ValueError:
-            response = "❌ Please enter a valid number."
+            response = "🤖 ❌ Please enter a valid number."
     
     elif st.session_state["step"] == 3:
         try:
@@ -131,7 +132,7 @@ if user_input:
             recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
             if not recommendations.empty:
-                response = "🎥 **Here are your recommended movies:**\n"
+                response = "🤖 🎥 **Here are your recommended movies:**\n"
 
                 for _, row in recommendations.iterrows():
                     response += f"""
@@ -144,16 +145,16 @@ if user_input:
 
                 response += "✨ Type **'restart'** to search again!"
             else:
-                response = "❌ No movies found! Type 'restart' to try again."
+                response = "🤖 ❌ No movies found! Type 'restart' to try again."
 
         except ValueError:
-            response = "❌ Please enter a valid year."
+            response = "🤖 ❌ Please enter a valid year."
 
     elif user_input.lower() == "restart":
         st.session_state["step"] = 1
-        response = "🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
+        response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
 
-    # Append bot response
+    # Append bot response with 🤖 emoji
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
     # Display updated messages in chat format
