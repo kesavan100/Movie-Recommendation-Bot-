@@ -12,14 +12,14 @@ st.markdown("""
     <style>
         .chat-container { max-width: 600px; margin: auto; }
         .stChatMessage { display: flex; align-items: center; padding: 10px; margin-bottom: 10px; border-radius: 12px; max-width: 80%; }
-        .user-message { background-color: #DCF8C6; align-self: flex-end; text-align: right; margin-left: auto; }
-        .bot-message { background-color: #FFFFFF; align-self: flex-start; text-align: left; margin-right: auto; }
+        .user-message { background-color: #DCF8C6; align-self: flex-end; text-align: right; margin-left: auto; padding: 12px; border-radius: 18px; font-weight: bold; }
+        .bot-message { background-color: #FFFFFF; align-self: flex-start; text-align: left; margin-right: auto; padding: 12px; border-radius: 18px; font-weight: bold; }
+        .custom-input { border-radius: 25px; padding: 12px; background: #f3f3f3; width: 100%; border: none; outline: none; font-size: 16px; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🤖 Tamil Movie Recommendation Bot")
 st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
-st.write("🎥 Enter the Genre to recommend for!!!")
 
 # Load dataset
 @st.cache_data
@@ -82,8 +82,9 @@ for message in st.session_state["messages"]:
     st.markdown(f'<div class="stChatMessage {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Chatbot Interaction
-user_input = st.chat_input("Type your response here...")
+# Custom input box styling
+st.markdown('<input class="custom-input" placeholder="Type your response here..." id="custom-input">', unsafe_allow_html=True)
+user_input = st.text_input("", key="custom-input", label_visibility="collapsed")
 
 if user_input:
     # Append user's message to chat (right side)
@@ -120,8 +121,10 @@ if user_input:
 
             if not recommendations.empty:
                 response = "🎥 **Here are your recommended movies:**"
-                for _, movie in recommendations.iterrows():
-                    response += f"\n📽 **{movie.moviename} ({movie.year})** - ⭐ {movie.predictedrating:.1f} | 🎭 {movie.genre}"
+                
+                # Displaying movies in a neat table
+                st.markdown(recommendations.style.set_table_attributes("style='display:inline'").hide(axis="index").to_html(), unsafe_allow_html=True)
+                
                 response += "\n✨ Type 'restart' to search again!"
             else:
                 response = "❌ No movies found! Type 'restart' to try again."
