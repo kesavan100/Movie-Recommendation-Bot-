@@ -4,8 +4,47 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder
 
-# 🎬 Title
-st.title("🎥 Tamil Movie Chatbot")
+# 🎬 Title with Style
+st.markdown(
+    """
+    <h1 style='text-align: center; color: #FFD700;'>🎥 Tamil Movie Chatbot</h1>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Background Styling
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #1e1e1e;
+        color: white;
+    }
+    .stChatMessage {
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 5px;
+    }
+    .user {
+        background-color: #0f62fe;
+        color: white;
+        align-self: flex-end;
+    }
+    .assistant {
+        background-color: #262626;
+        color: white;
+    }
+    .movie-card {
+        background-color: #262626;
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        color: white;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Load dataset
 @st.cache_data
@@ -36,69 +75,100 @@ def recommend_movies(primary_genre, min_rating, year):
     movies_df['PredictedRating'] = regressor.predict(X_all_encoded)
 
     recommendations = movies_df[
-        (movies_df['Genre'].str.contains(primary_genre, case=False)) & 
+        (movies_df['Genre'].str.lower().str.contains(primary_genre.lower(), case=False)) & 
         (movies_df['PredictedRating'] >= min_rating) & 
         (movies_df['Year'] >= year)
     ]
     
     recommendations = recommendations.sort_values(by='PredictedRating', ascending=False)
-    return recommendations[['MovieName', 'Genre', 'PredictedRating', 'Year']].reset_index(drop=True)
+    return recommendations[['MovieName', 'Genre', 'PredictedRating', 'Year', 'PosterURL']].reset_index(drop=True)
 
-# Initialize session state
-if "step" not in st.session_state:
-    st.session_state["step"] = 1
-    st.session_state["primary_genre"] = None
-    st.session_state["min_rating"] = None
-    st.session_state["year"] = None
+# Initialize session state for chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = [
+        {"role": "assistant", "content": "👋 Hello! I am a **Movie Recommendation Bot**. 🎬 I can help you find great Tamil movies!"},
+        {"role": "assistant", "content": "🎭 Which **genre** of movie do you want recommendations for?"}
+    ]
+    st.session_state.step = 1
+    st.session_state.primary_genre = None
+    st.session_state.min_rating = None
+    st.session_state.year = None
+
+# Display chat history with bubbles
+for message in st.session_state.chat_history:
+    css_class = "user" if message["role"] == "user" else "assistant"
+    st.markdown(f"<div class='stChatMessage {css_class}'>{message['content']}</div>", unsafe_allow_html=True)
 
 # Chatbot Interaction
-st.write("👋 Hi! I'm your movie chatbot. Let's find the best Tamil movies for you!")
-st.write("🎥 Enter Genre of the Movie")
 user_input = st.chat_input("Type your response here...")
 
 if user_input:
-    if st.session_state["step"] == 1:
-        st.session_state["primary_genre"] = user_input
-        st.session_state["step"] = 2
-        st.write(f"🎭 Got it! You like **{user_input}**. What's the minimum rating you prefer? (0-10)")
+    # Append user message to chat history
+    st.session_state.chat_history.append({"role": "user", "content": user_input})
+
+    if st.session_state.step == 1:
+        st.session_state.primary_genre = user_input
+        st.session_state.step = 2
+        bot_message = f"🎭 Got it! You like **{user_input}**. What's the **minimum rating** you prefer? (0-10)"
     
-    elif st.session_state["step"] == 2:
+    elif st.session_state.step == 2:
         try:
-            st.session_state["min_rating"] = float(user_input)
-            if 0 <= st.session_state["min_rating"] <= 10:
-                st.session_state["step"] = 3
-                st.write("📅 From which year should I suggest movies?")
+            st.session_state.min_rating = float(user_input)
+            if 0 <= st.session_state.min_rating <= 10:
+                st.session_state.step = 3
+                bot_message = "📅 From which **year** should I suggest movies?"
             else:
-                st.write("❌ Please enter a rating between 0 and 10.")
+                bot_message = "❌ Please enter a rating between **0 and 10**."
         except ValueError:
-            st.write("❌ Please enter a valid number.")
-    
-    elif st.session_state["step"] == 3:
+            bot_message = "❌ Please enter a **valid number**."
+
+    elif st.session_state.step == 3:
         try:
-            st.session_state["year"] = int(user_input)
-            st.session_state["step"] = 4
-            
+            st.session_state.year = int(user_input)
+            st.session_state.step = 4
+
             # Get recommendations
-            primary_genre = st.session_state["primary_genre"]
-            min_rating = st.session_state["min_rating"]
-            year = st.session_state["year"]
+            primary_genre = st.session_state.primary_genre
+            min_rating = st.session_state.min_rating
+            year = st.session_state.year
             
             recommendations = recommend_movies(primary_genre, min_rating, year)
-            
+
             if not recommendations.empty:
-                st.write("🎥 **Here are your recommended movies:**")
+                bot_message = "🎥 **Here are your recommended movies:**"
                 for _, movie in recommendations.iterrows():
-                    st.write(f"📽 **{movie.MovieName} ({movie.Year})** - ⭐ {movie.PredictedRating:.1f} | 🎭 {movie.Genre}")
-                st.write("✨ Type 'restart' to search again!")
+                    if pd.notna(movie.PosterURL):  # Check if poster URL is available
+                        st.image(movie.PosterURL, width=150)
+                    
+                    st.markdown(
+                        f"""
+                        <div class="movie-card">
+                        📽 <b>{movie.MovieName} ({movie.Year})</b> - ⭐ {movie.PredictedRating:.1f} | 🎭 {movie.Genre}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                bot_message += "\n✨ Type '**restart**' to search again!"
             else:
-                st.write("❌ No movies found! Type 'restart' to try again.")
-            
+                bot_message = "❌ No movies found! Type '**restart**' to try again."
+        
         except ValueError:
-            st.write("❌ Please enter a valid year.")
+            bot_message = "❌ Please enter a **valid year**."
 
     elif user_input.lower() == "restart":
-        st.session_state["step"] = 1
-        st.session_state["primary_genre"] = None
-        st.session_state["min_rating"] = None
-        st.session_state["year"] = None
-        st.write("🔄 Restarting... 👋 Hi again! Let's find your perfect movie.")
+        st.session_state.chat_history = [
+            {"role": "assistant", "content": "🔄 Restarting... 👋 Hello again! I am a **Movie Recommendation Bot**."},
+            {"role": "assistant", "content": "🎭 Which **genre** of movie do you want recommendations for?"}
+        ]
+        st.session_state.step = 1
+        st.session_state.primary_genre = None
+        st.session_state.min_rating = None
+        st.session_state.year = None
+        bot_message = None  # No need to add another message
+
+    # Append bot response to chat history
+    if bot_message:
+        st.session_state.chat_history.append({"role": "assistant", "content": bot_message})
+    
+    # Refresh the page with updated chat history
+    st.rerun()
