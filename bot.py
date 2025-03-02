@@ -33,30 +33,12 @@ st.markdown("""
             float: left;
             clear: both;
         }
-        /* Improved movie card styling */
-        .movie-card {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 12px;
-            border-left: 4px solid #ff5722;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        }
-        .movie-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333333;
-        }
-        .movie-info {
-            margin-left: 10px;
-            color: #555555;
-        }
     </style>
 """, unsafe_allow_html=True)
 
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
-st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let's find the perfect Tamil movie for you!")
+st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
 st.write("🎥 **Enter a Genre to Get Recommendations!**")
 
 # Load dataset
@@ -120,13 +102,13 @@ user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
     # Append user message with 👤 emoji
-    st.session_state["messages"].append({"role": "user", "content": user_input})
+    st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
     # Process chatbot response
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
-        response = "🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
+        response = "🤖 🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
     
     elif st.session_state["step"] == 2:
         try:
@@ -134,11 +116,11 @@ if user_input:
             if 0 <= rating <= 10:
                 st.session_state["min_rating"] = rating
                 st.session_state["step"] = 3
-                response = "📅 From which year should I suggest movies? 🎬"
+                response = "🤖 📅 From which year should I suggest movies? 🎬"
             else:
-                response = "❌ Please enter a rating between 0 and 10."
+                response = "🤖 ❌ Please enter a rating between 0 and 10."
         except ValueError:
-            response = "❌ Please enter a valid number."
+            response = "🤖 ❌ Please enter a valid number."
     
     elif st.session_state["step"] == 3:
         try:
@@ -150,42 +132,27 @@ if user_input:
             recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
             if not recommendations.empty:
-                # Using HTML for better formatting of movie recommendations
-                response = "🎥 <b>Here are your recommended movies:</b><br>"
-                
-                # Limit to top 5 recommendations to avoid overwhelming the user
-                max_recommendations = min(5, len(recommendations))
-                
-                for i in range(max_recommendations):
-                    row = recommendations.iloc[i]
+                response = "🤖 🎥 **Here are your recommended movies:**\n"
+
+                for _, row in recommendations.iterrows():
                     response += f"""
-                    <div class="movie-card">
-                        <div class="movie-title">🎬 {row['moviename']}</div>
-                        <div class="movie-info">🎭 <b>Genre:</b> {row['genre']}</div>
-                        <div class="movie-info">⭐ <b>Rating:</b> {row['predictedrating']:.1f}</div>
-                        <div class="movie-info">📅 <b>Year:</b> {row['year']}</div>
-                    </div>
+                    🎬 **{row['moviename']}**  
+                    🎭 **Genre:** {row['genre']}  
+                    ⭐ **Rating:** {row['predictedrating']:.1f}  
+                    📅 **Year:** {row['year']}  
+                    \n---
                     """
-                
-                if len(recommendations) > max_recommendations:
-                    response += f"<i>...and {len(recommendations) - max_recommendations} more movies</i><br>"
-                
-                response += "✨ Type <b>'restart'</b> to search again!"
+
+                response += "✨ Type **'restart'** to search again!"
             else:
-                response = "❌ No movies found! Type 'restart' to try again."
+                response = "🤖 ❌ No movies found! Type 'restart' to try again."
 
         except ValueError:
-            response = "❌ Please enter a valid year."
+            response = "🤖 ❌ Please enter a valid year."
 
     elif user_input.lower() == "restart":
         st.session_state["step"] = 1
-        response = "🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
-    else:
-        # Handle any other input when in recommendation state
-        if st.session_state["step"] == 4:
-            response = "Type 'restart' to search for different movies, or ask me something about the recommendations!"
-        else:
-            response = "I'm not sure how to respond to that. Let's continue with the current step."
+        response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
 
     # Append bot response with 🤖 emoji
     st.session_state["messages"].append({"role": "assistant", "content": response})
@@ -194,7 +161,5 @@ if user_input:
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     for message in st.session_state["messages"]:
         role_class = "user-message" if message["role"] == "user" else "bot-message"
-        prefix = "👤 " if message["role"] == "user" else "🤖 "
-        content = prefix + message["content"]
-        st.markdown(f'<div class="chat-message {role_class}">{content}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
