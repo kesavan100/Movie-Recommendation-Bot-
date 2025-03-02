@@ -10,30 +10,22 @@ st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="
 # Custom Styling
 st.markdown("""
     <style>
-        /* Main chat container */
+        /* Chat UI Styling */
         .chat-container { max-width: 600px; margin: auto; padding: 15px; }
-        
-        /* User messages (right-aligned, green bubble) */
         .user-message { background-color: #DCF8C6; text-align: right; margin-left: auto; 
                         padding: 12px 15px; border-radius: 15px; font-weight: bold; 
                         box-shadow: 0px 2px 5px rgba(0,0,0,0.1); width: fit-content; max-width: 80%; }
-
-        /* Bot messages (left-aligned, white bubble) */
         .bot-message { background-color: #FFFFFF; text-align: left; margin-right: auto; 
                        padding: 12px 15px; border-radius: 15px; font-weight: bold; 
                        box-shadow: 0px 2px 5px rgba(0,0,0,0.1); width: fit-content; max-width: 80%; }
-
-        /* Message spacing */
         .message-row { display: flex; align-items: center; margin-bottom: 10px; }
-
-        /* Custom input box */
         .chat-input { border-radius: 25px; padding: 12px; background: #f3f3f3; width: 100%; 
                       border: 1px solid #ccc; outline: none; font-size: 16px; }
-
-        /* Movie Recommendation Table */
-        .movie-table { width: 100%; text-align: left; border-collapse: collapse; margin-top: 15px; }
-        .movie-table th, .movie-table td { padding: 12px; border-bottom: 1px solid #ddd; }
-        .movie-table th { background-color: #f3f3f3; font-weight: bold; text-align: center; }
+        /* Recommendation Card Styling */
+        .movie-card { padding: 12px; margin: 10px 0; border-radius: 10px; 
+                      background-color: #f9f9f9; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+        .movie-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .movie-info { margin: 5px 0; font-size: 14px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -133,13 +125,17 @@ if user_input:
             recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
             if not recommendations.empty:
-                response = "🎥 **Here are your recommended movies:**"
-                
-                # Movie table display
-                st.markdown("<table class='movie-table'><tr><th>Movie Name</th><th>Genre</th><th>Rating</th><th>Year</th></tr>", unsafe_allow_html=True)
+                response = "🎥 **Here are your recommended movies:**\n"
+
                 for _, row in recommendations.iterrows():
-                    st.markdown(f"<tr><td>{row['moviename']}</td><td>{row['genre']}</td><td>⭐ {row['predictedrating']:.1f}</td><td>{row['year']}</td></tr>", unsafe_allow_html=True)
-                st.markdown("</table>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="movie-card">
+                        <p class="movie-title">🎬 {row['moviename']}</p>
+                        <p class="movie-info"><b>Genre:</b> {row['genre']}</p>
+                        <p class="movie-info"><b>Rating:</b> ⭐ {row['predictedrating']:.1f}</p>
+                        <p class="movie-info"><b>Year:</b> {row['year']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
                 response += "\n✨ Type 'restart' to search again!"
             else:
