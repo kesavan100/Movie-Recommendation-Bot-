@@ -4,22 +4,33 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder
 
-# 🎬 Attractive Title & Styling
+# 🎬 Page Config & Styling
 st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="centered")
 
-# WhatsApp-style chat UI
 st.markdown("""
     <style>
+        /* WhatsApp-style chat UI */
         .chat-container { max-width: 600px; margin: auto; }
-        .stChatMessage { display: flex; align-items: center; padding: 10px; margin-bottom: 10px; border-radius: 12px; max-width: 80%; }
-        .user-message { background-color: #DCF8C6; align-self: flex-end; text-align: right; margin-left: auto; padding: 12px; border-radius: 18px; font-weight: bold; }
-        .bot-message { background-color: #FFFFFF; align-self: flex-start; text-align: left; margin-right: auto; padding: 12px; border-radius: 18px; font-weight: bold; }
-        .custom-input { border-radius: 25px; padding: 12px; background: #f3f3f3; width: 100%; border: none; outline: none; font-size: 16px; }
+        .stChatMessage { display: flex; align-items: center; padding: 10px; margin-bottom: 10px; 
+                         border-radius: 12px; max-width: 80%; }
+        .user-message { background-color: #DCF8C6; align-self: flex-end; text-align: right; 
+                        margin-left: auto; padding: 12px; border-radius: 18px; font-weight: bold; 
+                        box-shadow: 0px 2px 5px rgba(0,0,0,0.1); }
+        .bot-message { background-color: #FFFFFF; align-self: flex-start; text-align: left; 
+                       margin-right: auto; padding: 12px; border-radius: 18px; font-weight: bold; 
+                       box-shadow: 0px 2px 5px rgba(0,0,0,0.1); }
+        .custom-input { border-radius: 25px; padding: 12px; background: #f3f3f3; width: 100%; 
+                        border: none; outline: none; font-size: 16px; }
+        .movie-table { width: 100%; text-align: left; border-collapse: collapse; }
+        .movie-table th, .movie-table td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .movie-table th { background-color: #f3f3f3; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🤖 Tamil Movie Recommendation Bot")
 st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
+st.title("Enter the Genre 🎥 to Recommend")
+
 
 # Load dataset
 @st.cache_data
@@ -60,11 +71,9 @@ def recommend_movies(primary_genre, min_rating, year):
 
     recommendations = recommendations.sort_values(by='predictedrating', ascending=False)
 
-    available_columns = recommendations.columns.tolist()
-    required_columns = ['moviename', 'genre', 'predictedrating', 'year']
-    final_columns = [col for col in required_columns if col in available_columns]
-
-    return recommendations[final_columns].reset_index(drop=True)
+    if not recommendations.empty:
+        return recommendations[['moviename', 'genre', 'predictedrating', 'year']].reset_index(drop=True)
+    return pd.DataFrame()
 
 # Initialize session state for chat
 if "messages" not in st.session_state:
@@ -75,16 +84,15 @@ if "step" not in st.session_state:
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
 
-# Display chat history with proper left/right alignment
+# Display chat history with left/right alignment
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
     st.markdown(f'<div class="stChatMessage {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Custom input box styling
-st.markdown('<input class="custom-input" placeholder="Type your response here..." id="custom-input">', unsafe_allow_html=True)
-user_input = st.text_input("", key="custom-input", label_visibility="collapsed")
+# Custom input box
+user_input = st.text_input("💬 Type your message...", key="chat_input")
 
 if user_input:
     # Append user's message to chat (right side)
@@ -95,12 +103,13 @@ if user_input:
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
-        response = f"🎭 Got it! You like **{user_input}** movies. What's the minimum rating you prefer? (0-10)"
+        response = "🎭 Got it! What minimum rating do you prefer? (0-10)"
     
     elif st.session_state["step"] == 2:
         try:
-            st.session_state["min_rating"] = float(user_input)
-            if 0 <= st.session_state["min_rating"] <= 10:
+            rating = float(user_input)
+            if 0 <= rating <= 10:
+                st.session_state["min_rating"] = rating
                 st.session_state["step"] = 3
                 response = "📅 From which year should I suggest movies?"
             else:
@@ -110,21 +119,22 @@ if user_input:
     
     elif st.session_state["step"] == 3:
         try:
-            st.session_state["year"] = int(user_input)
+            year = int(user_input)
+            st.session_state["year"] = year
             st.session_state["step"] = 4
 
-            primary_genre = st.session_state["primary_genre"]
-            min_rating = st.session_state["min_rating"]
-            year = st.session_state["year"]
-
-            recommendations = recommend_movies(primary_genre, min_rating, year)
+            # Get movie recommendations
+            recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
 
             if not recommendations.empty:
                 response = "🎥 **Here are your recommended movies:**"
-                
-                # Displaying movies in a neat table
-                st.markdown(recommendations.style.set_table_attributes("style='display:inline'").hide(axis="index").to_html(), unsafe_allow_html=True)
-                
+
+                # Display movie recommendations in a table
+                st.markdown("<table class='movie-table'><tr><th>Movie Name</th><th>Genre</th><th>Rating</th><th>Year</th></tr>", unsafe_allow_html=True)
+                for _, row in recommendations.iterrows():
+                    st.markdown(f"<tr><td>{row['moviename']}</td><td>{row['genre']}</td><td>⭐ {row['predictedrating']:.1f}</td><td>{row['year']}</td></tr>", unsafe_allow_html=True)
+                st.markdown("</table>", unsafe_allow_html=True)
+
                 response += "\n✨ Type 'restart' to search again!"
             else:
                 response = "❌ No movies found! Type 'restart' to try again."
@@ -134,11 +144,8 @@ if user_input:
 
     elif user_input.lower() == "restart":
         st.session_state["step"] = 1
-        st.session_state["primary_genre"] = None
-        st.session_state["min_rating"] = None
-        st.session_state["year"] = None
-        response = "🔄 Restarting... 👋 Hi again! Which genre of movie would you like to watch?"
+        response = "🔄 Restarting... 👋 Hi again! What genre of movie are you looking for?"
 
-    # Append bot's response to chat (left side)
+    # Append bot's response (left side)
     st.session_state["messages"].append({"role": "assistant", "content": response})
     st.markdown(f'<div class="stChatMessage bot-message">{response}</div>', unsafe_allow_html=True)
