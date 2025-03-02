@@ -38,8 +38,7 @@ st.markdown("""
 
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
-st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
-st.write("🎥 **Enter a Genre to Get Recommendations!**")
+st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you! 🎬")
 
 # Load dataset
 @st.cache_data
@@ -76,7 +75,9 @@ def recommend_movies(primary_genre, min_rating, year):
         (movies_df['year'] >= year)
     ].sort_values(by='predictedrating', ascending=False)
 
-    return recommendations[['moviename', 'genre', 'predictedrating', 'year']].reset_index(drop=True)
+    if not recommendations.empty:
+        return recommendations[['moviename', 'genre', 'predictedrating', 'year']].reset_index(drop=True)
+    return pd.DataFrame()
 
 # Initialize session state for chat
 if "messages" not in st.session_state:
@@ -86,14 +87,17 @@ if "step" not in st.session_state:
     st.session_state["primary_genre"] = None
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
-    st.session_state["recommendations"] = None
-    st.session_state["current_index"] = 0
+if "rec_index" not in st.session_state:
+    st.session_state["rec_index"] = 0  # Track recommendation pagination
+if "current_recommendations" not in st.session_state:
+    st.session_state["current_recommendations"] = pd.DataFrame()
 
 # Display chat history (Styled as WhatsApp chat)
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
-    st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+    prefix = "👤" if message["role"] == "user" else "🤖 "
+    st.markdown(f'<div class="chat-message {role_class}">{prefix}{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Custom chat input
@@ -103,11 +107,12 @@ if user_input:
     # Append user message
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
+    # Process chatbot response
     if st.session_state["step"] == 1:
         st.session_state["primary_genre"] = user_input.lower()
         st.session_state["step"] = 2
         response = "🤖 🎭 Got it! What minimum rating do you prefer? (0-10) ⭐"
-
+    
     elif st.session_state["step"] == 2:
         try:
             rating = float(user_input)
@@ -119,7 +124,7 @@ if user_input:
                 response = "🤖 ❌ Please enter a rating between 0 and 10."
         except ValueError:
             response = "🤖 ❌ Please enter a valid number."
-
+    
     elif st.session_state["step"] == 3:
         try:
             year = int(user_input)
@@ -127,56 +132,48 @@ if user_input:
             st.session_state["step"] = 4
 
             # Get recommendations
-            st.session_state["recommendations"] = recommend_movies(
-                st.session_state["primary_genre"],
-                st.session_state["min_rating"],
-                st.session_state["year"]
-            )
-            st.session_state["current_index"] = 0  # Start from the first movie
+            recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
+            st.session_state["current_recommendations"] = recommendations
+            st.session_state["rec_index"] = 0  # Reset pagination
 
-            if not st.session_state["recommendations"].empty:
-                response = "🤖 🎥 **Here are your first 5 recommended movies:**\n"
+            if not recommendations.empty:
+                response = "🤖 🎥 **Here are your recommended movies:**\n"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
-            
+
         except ValueError:
             response = "🤖 ❌ Please enter a valid year."
 
     elif st.session_state["step"] == 4:
-        if user_input.lower() == "more":
-            start = st.session_state["current_index"]
-            end = start + 5
-            movie_list = st.session_state["recommendations"].iloc[start:end]
+        # Show next 5 movies
+        recommendations = st.session_state["current_recommendations"]
+        rec_index = st.session_state["rec_index"]
+        next_movies = recommendations.iloc[rec_index:rec_index + 5]
 
-            if movie_list.empty:
-                response = "🤖 ⚠️ No more movies to recommend! Type 'restart' to try again."
-            else:
-                response = "🤖 🎥 **Here are the next movies:**\n"
-                st.session_state["current_index"] += 5  # Move index for next batch
+        if not next_movies.empty:
+            response = "🤖 🎥 **Here are your recommended movies:**\n\n"
+            for _, row in next_movies.iterrows():
+                response += f"🎬 **{row['moviename']}**\n"
+                response += f"🎭 **Genre:** {row['genre']}\n"
+                response += f"⭐ **Rating:** {row['predictedrating']:.1f}\n"
+                response += f"📅 **Year:** {row['year']}\n"
+                response += "━━━━━━━━━━━━━━━━━━━━\n"  # Separator
 
-        elif user_input.lower() == "exit":
-            response = "🤖 👋 Alright! Have a great time watching movies! 🎬"
-            st.session_state["step"] = 1  # Reset the bot
-
-        elif user_input.lower() == "restart":
-            st.session_state["step"] = 1
-            response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
+            st.session_state["rec_index"] += 5  # Move to next batch
+            response += "\n🔄 **Type 'more' for more movies or 'exit' to stop.**"
 
         else:
-            response = "🤖 ❌ Type 'more' to see more movies or 'exit' to stop."
+            response = "🤖 ❌ No more movies! Type 'restart' to start over."
+
+    elif user_input.lower() == "more":
+        st.session_state["step"] = 4  # Continue showing next set of movies
+        response = ""
+
+    elif user_input.lower() == "exit":
+        response = "🤖 👋 Thank you for using Tamil Movie Bot! Type 'restart' to search again."
 
     # Append bot response
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Display movie recommendations in a clean text format
-    if st.session_state["step"] == 4 and "recommendations" in st.session_state:
-        start = st.session_state["current_index"]
-        end = start + 5
-        movie_list = st.session_state["recommendations"].iloc[start:end]
-
-        if not movie_list.empty:
-            movie_text = "\n".join(
-                [f"🎬 **{row['moviename']}**  \n🎭 **Genre:** {row['genre']}  \n⭐ **Rating:** {row['predictedrating']:.1f}  \n📅 **Year:** {row['year']}  \n" 
-                 for _, row in movie_list.iterrows()]
-            )
-            st.session_state["messages"].append({"role": "assistant", "content": movie_text})
+    # Display updated chat
+    st.rerun()
