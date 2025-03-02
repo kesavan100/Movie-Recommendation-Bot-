@@ -38,7 +38,8 @@ st.markdown("""
 
 # Title and Greeting
 st.title("🤖 Tamil Movie Recommendation Bot")
-st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you! 🎬")
+st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let's find the perfect Tamil movie for you!")
+st.write("🎥 **Enter a Genre to Get Recommendations!**")
 
 # Load dataset
 @st.cache_data
@@ -87,10 +88,6 @@ if "step" not in st.session_state:
     st.session_state["primary_genre"] = None
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
-if "rec_index" not in st.session_state:
-    st.session_state["rec_index"] = 0  # Track recommendation pagination
-if "current_recommendations" not in st.session_state:
-    st.session_state["current_recommendations"] = pd.DataFrame()
 
 # Display chat history (Styled as WhatsApp chat)
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
@@ -104,7 +101,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
-    # Append user message
+    # Append user message with 👤 emoji
     st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
     # Process chatbot response
@@ -133,47 +130,36 @@ if user_input:
 
             # Get recommendations
             recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
-            st.session_state["current_recommendations"] = recommendations
-            st.session_state["rec_index"] = 0  # Reset pagination
 
             if not recommendations.empty:
                 response = "🤖 🎥 **Here are your recommended movies:**\n"
+
+                for _, row in recommendations.iterrows():
+                    response += f"""
+                    🎬 **{row['moviename']}**  
+                    🎭 **Genre:** {row['genre']}  
+                    ⭐ **Rating:** {row['predictedrating']:.1f}  
+                    📅 **Year:** {row['year']}  
+                    \n---
+                    """
+
+                response += "✨ Type **'restart'** to search again!"
             else:
                 response = "🤖 ❌ No movies found! Type 'restart' to try again."
 
         except ValueError:
             response = "🤖 ❌ Please enter a valid year."
 
-    elif st.session_state["step"] == 4:
-        # Show next 5 movies
-        recommendations = st.session_state["current_recommendations"]
-        rec_index = st.session_state["rec_index"]
-        next_movies = recommendations.iloc[rec_index:rec_index + 5]
+    elif user_input.lower() == "restart":
+        st.session_state["step"] = 1
+        response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
 
-        if not next_movies.empty:
-            response = "🤖 🎥 **Here are your recommended movies:**\n\n"
-            for _, row in next_movies.iterrows():
-                response += f"🎬 **{row['moviename']}**\n"
-                response += f"🎭 **Genre:** {row['genre']}\n"
-                response += f"⭐ **Rating:** {row['predictedrating']:.1f}\n"
-                response += f"📅 **Year:** {row['year']}\n"
-                response += "━━━━━━━━━━━━━━━━━━━━\n"  # Separator
-
-            st.session_state["rec_index"] += 5  # Move to next batch
-            response += "\n🔄 **Type 'more' for more movies or 'exit' to stop.**"
-
-        else:
-            response = "🤖 ❌ No more movies! Type 'restart' to start over."
-
-    elif user_input.lower() == "more":
-        st.session_state["step"] = 4  # Continue showing next set of movies
-        response = ""
-
-    elif user_input.lower() == "exit":
-        response = "🤖 👋 Thank you for using Tamil Movie Bot! Type 'restart' to search again."
-
-    # Append bot response
+    # Append bot response with 🤖 emoji
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Display updated chat
-    st.rerun()
+    # Display updated messages in chat format
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for message in st.session_state["messages"]:
+        role_class = "user-message" if message["role"] == "user" else "bot-message"
+        st.markdown(f'<div class="chat-message {role_class}">{message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
