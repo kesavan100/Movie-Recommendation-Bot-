@@ -6,17 +6,20 @@ from sklearn.preprocessing import OneHotEncoder
 
 # 🎬 Attractive Title & Styling
 st.set_page_config(page_title="🎥 Tamil Movie Bot", page_icon="🎬", layout="centered")
+
+# WhatsApp-style chat UI
 st.markdown("""
     <style>
-        .stChatMessage { display: flex; align-items: center; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; }
-        .user-message { background-color: #DCF8C6; align-self: flex-end; text-align: right; }
-        .bot-message { background-color: #ffffff; align-self: flex-start; text-align: left; }
         .chat-container { max-width: 600px; margin: auto; }
+        .stChatMessage { display: flex; align-items: center; padding: 10px; margin-bottom: 10px; border-radius: 12px; max-width: 80%; }
+        .user-message { background-color: #DCF8C6; align-self: flex-end; text-align: right; margin-left: auto; }
+        .bot-message { background-color: #FFFFFF; align-self: flex-start; text-align: left; margin-right: auto; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🤖 Tamil Movie Recommendation Bot")
 st.write("👋 **Hello!** I'm your AI-powered movie assistant. Let’s find the perfect Tamil movie for you!")
+st.write("🎥 Enter the Genre to recommend for!!!")
 
 # Load dataset
 @st.cache_data
@@ -72,7 +75,7 @@ if "step" not in st.session_state:
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
 
-# Display chat history with WhatsApp-style layout
+# Display chat history with proper left/right alignment
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
