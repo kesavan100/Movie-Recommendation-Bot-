@@ -88,6 +88,10 @@ if "step" not in st.session_state:
     st.session_state["primary_genre"] = None
     st.session_state["min_rating"] = None
     st.session_state["year"] = None
+if "recommendations" not in st.session_state:
+    st.session_state["recommendations"] = pd.DataFrame()
+if "movie_index" not in st.session_state:
+    st.session_state["movie_index"] = 0
 
 # Display chat history (Styled as WhatsApp chat)
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
@@ -126,15 +130,28 @@ if user_input:
         try:
             year = int(user_input)
             st.session_state["year"] = year
+            st.session_state["recommendations"] = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
+            st.session_state["movie_index"] = 0
             st.session_state["step"] = 4
 
-            # Get recommendations
-            recommendations = recommend_movies(st.session_state["primary_genre"], st.session_state["min_rating"], st.session_state["year"])
+        except ValueError:
+            response = "🤖 ❌ Please enter a valid year."
 
-            if not recommendations.empty:
-                response = "🤖 🎥 **Here are your recommended movies:**\n\n"
+    elif st.session_state["step"] == 4:
+        if user_input.lower() == "exit":
+            st.session_state["step"] = 1
+            response = "🤖 👋 Goodbye! Type again to start a new search."
+        else:
+            recommendations = st.session_state["recommendations"]
+            index = st.session_state["movie_index"]
 
-                for _, row in recommendations.iterrows():
+            if recommendations.empty:
+                response = "🤖 ❌ No movies found! Type 'restart' to try again."
+            else:
+                response = "🤖 🎥 **Here are some movies for you:**\n\n"
+
+                for i in range(index, min(index + 5, len(recommendations))):
+                    row = recommendations.iloc[i]
                     response += (
                         f"🎬 **{row['moviename']}**\n"
                         f"🎭 Genre: {row['genre']}\n"
@@ -142,16 +159,12 @@ if user_input:
                         f"📅 Year: {row['year']}\n\n"
                     )
 
-                response += "✨ Type **'restart'** to search again!"
-            else:
-                response = "🤖 ❌ No movies found! Type 'restart' to try again."
+                st.session_state["movie_index"] += 5
 
-        except ValueError:
-            response = "🤖 ❌ Please enter a valid year."
-
-    elif user_input.lower() == "restart":
-        st.session_state["step"] = 1
-        response = "🤖 🔄 Restarting... 👋 Hi again! What genre of movie are you looking for? 🎭"
+                if st.session_state["movie_index"] >= len(recommendations):
+                    response += "✨ No more movies left! Type 'restart' to start over."
+                else:
+                    response += "✨ Type 'more' to see more movies or 'exit' to stop."
 
     # Append bot response with 🤖 emoji
     st.session_state["messages"].append({"role": "assistant", "content": response})
