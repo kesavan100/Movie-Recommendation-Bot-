@@ -93,7 +93,7 @@ if "step" not in st.session_state:
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for message in st.session_state["messages"]:
     role_class = "user-message" if message["role"] == "user" else "bot-message"
-    prefix = "🎤 " if message["role"] == "user" else "🤖 "
+    prefix = "👤" if message["role"] == "user" else "🤖 "
     st.markdown(f'<div class="chat-message {role_class}">{prefix}{message["content"]}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -101,8 +101,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 user_input = st.chat_input("💬 Type your message...")
 
 if user_input:
-    # Append user message with 🎤 emoji
-    st.session_state["messages"].append({"role": "user", "content": f"🎤 {user_input}"})
+    # Append user message with 👤 emoji
+    st.session_state["messages"].append({"role": "user", "content": f"👤 {user_input}"})
 
     # Process chatbot response
     if st.session_state["step"] == 1:
